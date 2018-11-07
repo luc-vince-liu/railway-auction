@@ -114,6 +114,7 @@ public class Simulator {
 
         initBids();
         budget = getBudget();
+        System.out.println("Budget: " + budget);
         List<PlayerWrapper> updates = new ArrayList<>(players);
         for (PlayerWrapper pw : players) {
             try {
@@ -150,14 +151,13 @@ public class Simulator {
                 int i=0;
                 int null_players = 0;
 
-                while (updates.size() > 0 && null_players <= updates.size()) {
+                while (updates.size() > 0 && null_players < updates.size()) {
                     PlayerWrapper pw = updates.get(i);
                     try {
                         Bid bid = pw.getBid(
                             deepClone(currentBids), deepClone(allBids), deepClone(maxBid));
                         if (bid == null) {
                             ++null_players;
-                            updates.remove(pw);
                         }
                         else {
                             currentBids.add(0, bid);
@@ -172,7 +172,7 @@ public class Simulator {
                     catch (Exception ex) {
                         // This should be an exception only from getBid function.
                         System.out.println("Uh-oh! " + ex.getMessage());
-                        ex.printStackTrace();
+                        // ex.printStackTrace();
                         updates.remove(pw);
                     }
 
@@ -201,17 +201,17 @@ public class Simulator {
                 }
 
                 maxBid = getMaxBid(currentBids, allBids);
+                System.out.print("Max bidder: " + maxBid.bidder + " amount: " + maxBid.amount);
                 updateBids(maxBid, allBids);
 
-                System.out.println("Max bidder: " + maxBid.bidder);
-                    for (PlayerWrapper pw : players) {
-                        if (pw.getName().equals(maxBid.bidder)) {
-                            pw.updateBudget(maxBid);
-                        }
-                        else {
-                            pw.updateBudget(null);
-                        }
+                for (PlayerWrapper pw : players) {
+                    if (pw.getName().equals(maxBid.bidder)) {
+                        pw.updateBudget(maxBid);
                     }
+                    else {
+                        pw.updateBudget(null);
+                    }
+                }
 
                 if (gui) {
                     gui(server, state(fps, allBids, origPlayers));
@@ -272,7 +272,7 @@ public class Simulator {
             }
         }
 
-        return maxBids.get(rand.nextInt(maxBids.size()));
+        return new Bid(maxBids.get(rand.nextInt(maxBids.size())));
     }
 
     // Get the cost per km of the maximum bid.
@@ -285,15 +285,20 @@ public class Simulator {
         BidInfo bi = allBids.get(bid.id1);
         double amount = bid.amount;
 
+        System.out.print(" Link: " + bi.town1 + "-" + bi.town2);
+
         if (bid.id2 != -1) {
             BidInfo bi2 = allBids.get(bid.id2);
             bi2.amount = amount/2;
             bi2.owner = bid.bidder;
             amount /= 2;
+            System.out.print(" " + bi2.town1 + "-" + bi2.town2);
         }
 
         bi.amount = amount;
         bi.owner = bid.bidder;
+
+        System.out.println();
     }
 
     // The following 4 functions that getDistance depending on the parameter 
@@ -673,7 +678,7 @@ public class Simulator {
         return new PlayerWrapper(p, name, timeout);
     }
 
-    // The state that is sent to the GUI. (JSON)
+    // The state that is sent to the GUI (JSON) at the very beginning.
     private static String state(
         double fps,
         List<Coordinates> geo,
@@ -706,7 +711,7 @@ public class Simulator {
         return json;
     }
 
-    // The state that is sent to the GUI. (JSON)
+    // The state that is sent to the GUI (JSON) during the auction.
     private static String state(
         double fps,
         List<BidInfo> allBids,
@@ -734,12 +739,12 @@ public class Simulator {
         json = json.substring(0, json.length() - 1);
         json += "\"}";
 
-        // System.out.println(json);
+        System.out.println(json);
 
         return json;
     }
 
-    // The state that is sent to the GUI. (JSON)
+    // The state that is sent to the GUI (JSON) at the very end.
     private static String state(
         double fps,
         List<BidInfo> allBids,
